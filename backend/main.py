@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, HttpUrl
 import json
+from datetime import datetime
 
 from backend.core.config import get_settings
 from backend.core.state import GraphState
@@ -231,6 +232,12 @@ async def generate_site(request: GenerateSiteRequest):
     """
     logger.info(f"📥 Nouvelle requête /generate-site : {request.target_url}")
 
+    def json_serializer(obj):
+        """Encoder JSON personnalisé pour gérer les datetime."""
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError(f"Type {type(obj)} not serializable")
+
     async def event_generator():
         """Générateur d'événements SSE pour le streaming."""
         # État initial du graphe
@@ -253,7 +260,7 @@ async def generate_site(request: GenerateSiteRequest):
             logger.info("🚀 Lancement du pipeline agentique...")
             
             # Yield événement de démarrage
-            yield f"data: {json.dumps({'status': 'started', 'message': 'Pipeline démarré'})}\n\n"
+            yield f"data: {json.dumps({'status': 'started', 'message': 'Pipeline démarré'}, default=json_serializer)}\n\n"
 
             final_state = None
             
@@ -267,9 +274,9 @@ async def generate_site(request: GenerateSiteRequest):
                     event_data = {
                         "status": "running",
                         "node": node_name,
-                        "timestamp": node_output.get("timestamp", "")
+                        "timestamp": datetime.now().isoformat()
                     }
-                    yield f"data: {json.dumps(event_data)}\n\n"
+                    yield f"data: {json.dumps(event_data, default=json_serializer)}\n\n"
                     
                     # Stocker le dernier état
                     final_state = node_output
@@ -287,7 +294,7 @@ async def generate_site(request: GenerateSiteRequest):
                     "retry_count": retry_count,
                     "success": bool(generative_ui_schema) and not arbitre_errors
                 }
-                yield f"data: {json.dumps(completion_event)}\n\n"
+                yield f"data: {json.dumps(completion_event, default=json_serializer)}\n\n"
                 logger.info("✅ Pipeline terminé")
             else:
                 # Erreur : aucun état final
@@ -295,7 +302,7 @@ async def generate_site(request: GenerateSiteRequest):
                     "status": "error",
                     "message": "Aucun état final retourné par le pipeline"
                 }
-                yield f"data: {json.dumps(error_event)}\n\n"
+                yield f"data: {json.dumps(error_event, default=json_serializer)}\n\n"
 
         except Exception as exc:
             logger.error(f"❌ Échec critique du pipeline : {exc}")
@@ -303,7 +310,7 @@ async def generate_site(request: GenerateSiteRequest):
                 "status": "error",
                 "message": f"Pipeline execution failed: {str(exc)}"
             }
-            yield f"data: {json.dumps(error_event)}\n\n"
+            yield f"data: {json.dumps(error_event, default=json_serializer)}\n\n"
 
     return StreamingResponse(
         event_generator(),
