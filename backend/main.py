@@ -16,7 +16,9 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, HttpUrl
+import json
 
 from backend.core.config import get_settings
 from backend.core.state import GraphState
@@ -206,15 +208,15 @@ class GenerateSiteResponse(BaseModel):
 # Endpoints
 # ===========================================================================
 
-@app.post("/generate-site", response_model=GenerateSiteResponse)
-async def generate_site(request: GenerateSiteRequest) -> GenerateSiteResponse:
+@app.post("/generate-site")
+async def generate_site(request: GenerateSiteRequest):
     """
-    Génère une landing page SEO complète à partir d'une URL cible.
+    Génère une landing page SEO complète à partir d'une URL cible avec streaming SSE.
 
     Pipeline :
         1. Scout : Crawl + compression LLM du contenu web
         2. SEO : Définition stratégie sémantique (keywords, meta tags)
-        3. UX + Copywriter (parallèle) : Wireframe + Rédaction persuasive
+        3. UX + Art Director + Copywriter (parallèle) : Wireframe + Design + Rédaction
         4. Arbitre : Validation cohérence UX/SEO/Copy
         5. Architect : Compilation du GenerativeUISchema final
 
@@ -222,68 +224,95 @@ async def generate_site(request: GenerateSiteRequest) -> GenerateSiteResponse:
         request: URL cible à analyser
 
     Returns:
-        GenerateUISchema validé + métadonnées du pipeline
+        StreamingResponse avec Server-Sent Events (SSE)
 
     Raises:
         HTTPException 500: Si le pipeline échoue après les retries
     """
     logger.info(f"📥 Nouvelle requête /generate-site : {request.target_url}")
 
-    # -----------------------------------------------------------------------
-    # État initial du graphe
-    # -----------------------------------------------------------------------
-    initial_state: GraphState = {
-        "target_url": str(request.target_url),
-        "market_context": {},
-        "brand_dna": {},
-        "seo_silo": {},
-        "wireframe": {},
-        "copy_draft": {},
-        "arbitre_errors": [],
-        "retry_count": 0,
-        "faulty_node": None,
-        "generative_ui_schema": {},
-        "messages": [],
-    }
+    async def event_generator():
+        """Générateur d'événements SSE pour le streaming."""
+        # État initial du graphe
+        initial_state: GraphState = {
+            "target_url": str(request.target_url),
+            "market_context": {},
+            "brand_dna": {},
+            "seo_silo": {},
+            "wireframe": {},
+            "art_direction": {},
+            "copy_draft": {},
+            "arbitre_errors": [],
+            "retry_count": 0,
+            "faulty_node": None,
+            "generative_ui_schema": {},
+            "messages": [],
+        }
 
-    # -----------------------------------------------------------------------
-    # Exécution du graphe LangGraph
-    # -----------------------------------------------------------------------
-    try:
-        logger.info("🚀 Lancement du pipeline agentique...")
-        final_state: GraphState = await factory_graph.ainvoke(initial_state)
-        logger.info("✅ Pipeline terminé")
-    except Exception as exc:
-        logger.error(f"❌ Échec critique du pipeline : {exc}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Pipeline execution failed: {str(exc)}"
-        ) from exc
+        try:
+            logger.info("🚀 Lancement du pipeline agentique...")
+            
+            # Yield événement de démarrage
+            yield f"data: {json.dumps({'status': 'started', 'message': 'Pipeline démarré'})}\n\n"
 
-    # -----------------------------------------------------------------------
-    # Construction de la réponse
-    # -----------------------------------------------------------------------
-    generative_ui_schema = final_state.get("generative_ui_schema", {})
-    arbitre_errors = final_state.get("arbitre_errors", [])
-    retry_count = final_state.get("retry_count", 0)
+            final_state = None
+            
+            # Stream des événements du graphe
+            async for output in factory_graph.astream(initial_state):
+                # output est un dict avec le nom du nœud comme clé
+                for node_name, node_output in output.items():
+                    logger.info(f"📡 Nœud en cours : {node_name}")
+                    
+                    # Yield événement de progression
+                    event_data = {
+                        "status": "running",
+                        "node": node_name,
+                        "timestamp": node_output.get("timestamp", "")
+                    }
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                    
+                    # Stocker le dernier état
+                    final_state = node_output
 
-    success = bool(generative_ui_schema) and not arbitre_errors
+            # Yield événement de complétion avec le schéma final
+            if final_state:
+                generative_ui_schema = final_state.get("generative_ui_schema", {})
+                arbitre_errors = final_state.get("arbitre_errors", [])
+                retry_count = final_state.get("retry_count", 0)
+                
+                completion_event = {
+                    "status": "complete",
+                    "generative_ui_schema": generative_ui_schema,
+                    "arbitre_errors": arbitre_errors,
+                    "retry_count": retry_count,
+                    "success": bool(generative_ui_schema) and not arbitre_errors
+                }
+                yield f"data: {json.dumps(completion_event)}\n\n"
+                logger.info("✅ Pipeline terminé")
+            else:
+                # Erreur : aucun état final
+                error_event = {
+                    "status": "error",
+                    "message": "Aucun état final retourné par le pipeline"
+                }
+                yield f"data: {json.dumps(error_event)}\n\n"
 
-    if success:
-        message = f"Site généré avec succès après {retry_count} retry(s)"
-    elif arbitre_errors:
-        message = f"Échec après {retry_count} retry(s) : {'; '.join(arbitre_errors[:2])}"
-    else:
-        message = "Échec : aucun schéma généré"
+        except Exception as exc:
+            logger.error(f"❌ Échec critique du pipeline : {exc}")
+            error_event = {
+                "status": "error",
+                "message": f"Pipeline execution failed: {str(exc)}"
+            }
+            yield f"data: {json.dumps(error_event)}\n\n"
 
-    logger.info(f"📤 Réponse : success={success}, retries={retry_count}")
-
-    return GenerateSiteResponse(
-        success=success,
-        generative_ui_schema=generative_ui_schema,
-        arbitre_errors=arbitre_errors,
-        retry_count=retry_count,
-        message=message,
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
     )
 
 
