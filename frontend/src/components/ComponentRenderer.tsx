@@ -1,4 +1,4 @@
-import { UIComponent } from "@/types/schema";
+import { UIComponent, ArtDirectionTokens } from "@/types/schema";
 import HeroSection from "./blocks/HeroSection";
 import FeatureGrid from "./blocks/FeatureGrid";
 import ContentBlock from "./blocks/ContentBlock";
@@ -7,14 +7,18 @@ import CTABanner from "./blocks/CTABanner";
 
 interface ComponentRendererProps {
   section: UIComponent;
+  animationFeeling?: ArtDirectionTokens["animation_feeling"];
 }
 
-export default function ComponentRenderer({ section }: ComponentRendererProps) {
+export default function ComponentRenderer({ 
+  section, 
+  animationFeeling = "smooth_ease" 
+}: ComponentRendererProps) {
   switch (section.component_type) {
     case "HeroSection":
-      return <HeroSection {...section} />;
+      return <HeroSection {...section} animationFeeling={animationFeeling} />;
     case "FeatureGrid":
-      return <FeatureGrid {...section} />;
+      return <FeatureGrid {...section} animationFeeling={animationFeeling} />;
     case "ContentBlock":
       return <ContentBlock {...section} />;
     case "FAQ":

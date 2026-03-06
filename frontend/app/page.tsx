@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { GenerativeUISchema } from "@/types/schema";
 import ComponentRenderer from "@/components/ComponentRenderer";
+import ThemeInjector from "@/components/ThemeInjector";
 
 const mockData: GenerativeUISchema = {
   page_slug: "restaurant-mediterraneen",
@@ -16,6 +17,12 @@ const mockData: GenerativeUISchema = {
       "gastronomie méditerranéenne",
     ],
   },
+  art_direction: {
+    design_vibe: "organic_elegant",
+    typography_style: "serif_elegant",
+    animation_feeling: "smooth_ease",
+    color_palette_hex: ["#2D3748", "#F7FAFC", "#D69E2E", "#1A202C", "#EDF2F7"],
+  },
   sections: [
     {
       component_type: "HeroSection",
@@ -28,6 +35,7 @@ const mockData: GenerativeUISchema = {
       cta_secondary_url: "#menu",
       background_variant: "gradient",
       social_proof_label: "Plus de 500 clients satisfaits chaque mois",
+      layout_style: "centered",
     },
     {
       component_type: "FeatureGrid",
@@ -55,6 +63,7 @@ const mockData: GenerativeUISchema = {
         },
       ],
       columns: 3,
+      layout_style: "grid_classic",
     },
     {
       component_type: "ContentBlock",
@@ -105,10 +114,17 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
-      {mockData.sections.map((section, index) => (
-        <ComponentRenderer key={index} section={section} />
-      ))}
-    </main>
+    <>
+      <ThemeInjector artDirection={mockData.art_direction} />
+      <main className="min-h-screen">
+        {mockData.sections.map((section, index) => (
+          <ComponentRenderer 
+            key={index} 
+            section={section} 
+            animationFeeling={mockData.art_direction.animation_feeling}
+          />
+        ))}
+      </main>
+    </>
   );
 }
