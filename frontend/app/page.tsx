@@ -1,130 +1,122 @@
-import { Metadata } from "next";
+"use client";
+import { useState } from "react";
 import { GenerativeUISchema } from "@/types/schema";
 import ComponentRenderer from "@/components/ComponentRenderer";
 import ThemeInjector from "@/components/ThemeInjector";
 
-const mockData: GenerativeUISchema = {
-  page_slug: "restaurant-mediterraneen",
-  brand_name: "L'Arc-en-Ciel",
-  seo_metadata: {
-    title: "Restaurant Méditerranéen L'Arc-en-Ciel — Cuisine Authentique",
-    description:
-      "Découvrez L'Arc-en-Ciel, restaurant méditerranéen authentique. Saveurs fraîches, ambiance chaleureuse et service impeccable. Réservez votre table dès maintenant.",
-    keywords: [
-      "restaurant méditerranéen",
-      "cuisine méditerranéenne",
-      "restaurant authentique",
-      "gastronomie méditerranéenne",
-    ],
-  },
-  art_direction: {
-    design_vibe: "organic_elegant",
-    typography_style: "serif_elegant",
-    animation_feeling: "smooth_ease",
-    color_palette_hex: ["#2D3748", "#F7FAFC", "#D69E2E", "#1A202C", "#EDF2F7"],
-  },
-  sections: [
-    {
-      component_type: "HeroSection",
-      headline: "Restaurant Méditerranéen — Saveurs Authentiques du Soleil",
-      subheadline:
-        "L'Arc-en-Ciel vous transporte au cœur de la Méditerranée avec des plats frais, une ambiance chaleureuse et un service exceptionnel.",
-      cta_primary_label: "Réserver une table",
-      cta_primary_url: "#contact",
-      cta_secondary_label: "Voir la carte",
-      cta_secondary_url: "#menu",
-      background_variant: "gradient",
-      social_proof_label: "Plus de 500 clients satisfaits chaque mois",
-      layout_style: "centered",
-    },
-    {
-      component_type: "FeatureGrid",
-      section_title: "Pourquoi choisir L'Arc-en-Ciel ?",
-      section_subtitle:
-        "Une expérience culinaire méditerranéenne authentique et inoubliable",
-      features: [
-        {
-          icon_name: "Star",
-          title: "Ingrédients frais et locaux",
-          description:
-            "Nous sélectionnons rigoureusement nos produits auprès de producteurs locaux pour garantir fraîcheur et qualité exceptionnelle.",
-        },
-        {
-          icon_name: "Shield",
-          title: "Recettes traditionnelles authentiques",
-          description:
-            "Nos chefs perpétuent les traditions culinaires méditerranéennes transmises de génération en génération.",
-        },
-        {
-          icon_name: "Zap",
-          title: "Service rapide et attentionné",
-          description:
-            "Notre équipe dévouée assure un service impeccable pour que chaque visite soit mémorable.",
-        },
-      ],
-      columns: 3,
-      layout_style: "grid_classic",
-    },
-    {
-      component_type: "ContentBlock",
-      heading: "Une cuisine méditerranéenne qui célèbre le terroir",
-      body_markdown:
-        "Chez L'Arc-en-Ciel, nous croyons que la **vraie cuisine méditerranéenne** commence par le respect des produits. Chaque plat est préparé avec passion, en utilisant des techniques ancestrales et des ingrédients soigneusement sélectionnés.\n\nNotre chef, formé dans les meilleures tables de la Méditerranée, compose des assiettes qui racontent une histoire : celle du soleil, de la mer et de la générosité.",
-      image_position: "none",
-    },
-    {
-      component_type: "FAQ",
-      section_title: "Questions fréquentes",
-      items: [
-        {
-          question: "Proposez-vous des options végétariennes ?",
-          answer:
-            "Oui, notre carte comprend plusieurs plats végétariens authentiques inspirés de la tradition méditerranéenne, préparés avec des légumes frais de saison.",
-        },
-        {
-          question: "Faut-il réserver à l'avance ?",
-          answer:
-            "Nous recommandons vivement de réserver, surtout le week-end. Vous pouvez réserver en ligne ou par téléphone jusqu'à 2 mois à l'avance.",
-        },
-        {
-          question: "Acceptez-vous les groupes ?",
-          answer:
-            "Absolument ! Nous pouvons accueillir des groupes jusqu'à 30 personnes. Contactez-nous pour organiser votre événement privé avec un menu personnalisé.",
-        },
-      ],
-    },
-    {
-      component_type: "CTABanner",
-      headline: "Prêt à découvrir nos saveurs méditerranéennes ?",
-      subtext: "Réservez votre table dès maintenant et laissez-vous transporter",
-      cta_label: "Réserver maintenant",
-      cta_url: "#contact",
-      background_color: "primary",
-    },
-  ],
-  generated_at: "2026-03-06T10:30:00Z",
-  pipeline_version: "1.0.0",
-};
-
-export const metadata: Metadata = {
-  title: mockData.seo_metadata.title,
-  description: mockData.seo_metadata.description,
-  keywords: mockData.seo_metadata.keywords,
-};
-
 export default function Home() {
+  const [targetUrl, setTargetUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [generatedSchema, setGeneratedSchema] = useState<GenerativeUISchema | null>(null);
+
+  const handleGenerate = async () => {
+    if (!targetUrl.trim()) {
+      setError("Veuillez entrer une URL valide");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("http://localhost:8000/generate-site", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ target_url: targetUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Erreur lors de la génération du site");
+      }
+
+      const data: GenerativeUISchema = await response.json();
+      setGeneratedSchema(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <>
-      <ThemeInjector artDirection={mockData.art_direction} />
-      <main className="min-h-screen">
-        {mockData.sections.map((section, index) => (
-          <ComponentRenderer 
-            key={index} 
-            section={section} 
-            animationFeeling={mockData.art_direction.animation_feeling}
-          />
-        ))}
-      </main>
-    </>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Dashboard SaaS - UI de génération */}
+      <div className="container mx-auto px-6 py-20">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-5xl font-bold text-gray-900 mb-4">
+              Autonomous SEO Web Factory
+            </h1>
+            <p className="text-xl text-gray-600">
+              Générez un site web optimisé SEO en 2 minutes grâce à nos agents IA
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="url" className="block text-sm font-semibold text-gray-700 mb-2">
+                  URL du site à analyser
+                </label>
+                <input
+                  id="url"
+                  type="url"
+                  value={targetUrl}
+                  onChange={(e) => setTargetUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <button
+                onClick={handleGenerate}
+                disabled={isLoading}
+                className="w-full px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
+              >
+                {isLoading ? "Génération en cours..." : "Générer le Site"}
+              </button>
+
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 font-medium">{error}</p>
+                </div>
+              )}
+
+              {isLoading && (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-gray-600 text-center">
+                    Nos agents IA analysent et construisent votre site...
+                    <br />
+                    <span className="text-sm text-gray-500">(Environ 2 min)</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Affichage du site généré */}
+      {generatedSchema && (
+        <>
+          <ThemeInjector artDirection={generatedSchema.art_direction} />
+          <main className="min-h-screen">
+            {generatedSchema.sections.map((section, index) => (
+              <ComponentRenderer 
+                key={index} 
+                section={section} 
+                animationFeeling={generatedSchema.art_direction.animation_feeling}
+              />
+            ))}
+          </main>
+        </>
+      )}
+    </div>
   );
 }
