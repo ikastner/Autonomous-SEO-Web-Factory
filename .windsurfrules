@@ -1,0 +1,54 @@
+# CONTEXTE PROJET : Autonomous SEO Web Factory (Architecture Agentique)
+
+## 1. Vision et Paradigme Global
+Ce projet est une usine logicielle 100% automatisée (Backend Python / Frontend Next.js).
+**Règle d'or absolue (Generative UI) :** Le système IA (les agents) NE DOIT JAMAIS générer de code source brut (.tsx, .jsx, CSS). Le système génère UNIQUEMENT un objet JSON strictement typé via Pydantic. Ce JSON est ensuite mappé dynamiquement par le frontend Next.js vers un catalogue de composants UI pré-codés (shadcn/ui).
+
+## 2. Stack Technique
+* **Orchestration / Cœur :** Python 3.12+, LangGraph (State management asynchrone).
+* **Validation des données :** Pydantic (Strict mode).
+* **Extraction & Scraping :** Crawl4AI.
+* **Point d'entrée API :** FastAPI.
+* **Frontend (Cible finale) :** Next.js 14+ (App Router), Tailwind CSS, shadcn/ui.
+* **Déploiement cible :** Vercel (via GitHub Actions/API).
+
+## 3. Topologie du Graphe (LangGraph Pipeline)
+Le workflow n'est pas linéaire, il inclut des validations (Arbitre). Voici les nœuds du graphe :
+1.  **Scout Node :** Extraction web (Crawl4AI) -> Génère un `MarketContext`.
+2.  **Data Miner Node :** Extraction de l'ADN de marque -> Met à jour le State.
+3.  **SEO Node :** Définit l'arborescence (Silo) et les mots-clés -> Met à jour le State.
+4.  **UX & Copywriter Nodes (Parallèles) :** Structuration des wireframes et rédaction -> Met à jour le State.
+5.  **Arbitre Node (Gatekeeper) :** Valide la cohérence UX/SEO/Copy. Si erreur -> renvoie au nœud fautif.
+6.  **Architect Node :** Transforme le State validé en un `GenerativeUI_Schema` (JSON strict) validé par Pydantic.
+
+## 4. Règles de Gestion de l'État (State Management)
+Pour éviter l'amnésie des LLMs ("Lost in the middle") :
+* L'état global de LangGraph DOIT utiliser `TypedDict` avec des annotations `Annotated` et des fonctions `reducer` pour chaque clé.
+* **Ne jamais** concaténer aveuglément des strings dans le State. Toujours écraser ou fusionner des dictionnaires structurés.
+* **Compression du contexte :** Avant de passer l'état au nœud "Copywriter", créer une fonction qui filtre et ne passe que le strict minimum nécessaire (Wireframe + Mots-clés), pas les logs de scraping.
+
+## 5. Directives de Codage pour l'IA (Windsurf Cascade)
+Lorsque tu (l'IA) génères du code pour ce projet, tu dois respecter ces règles :
+* **Zéro Code Mort :** Si une variable ou une fonction n'est pas utilisée, ne l'écris pas.
+* **Typage Strict :** Tout le code Python doit être typé (Type Hints). Utilise Pydantic pour tout ce qui interagit avec les LLMs.
+* **Asynchronisme :** Tous les appels réseaux, l'extraction Crawl4AI et les invocations LLM doivent utiliser `asyncio` (`async def`).
+* **Séparation des préoccupations :** Sépare clairement les définitions d'agents (dossier `/agents`), la définition de l'état (`/state`), et le graphe principal (`/graph`).
+* **Fallback :** Gère toujours les exceptions de l'API LLM (Timeouts, Rate limits) avec des mécanismes de Retry (via la librairie `tenacity` ou nativement dans LangChain/LangGraph).
+
+## 6. Structure de Projet Attendue (Backend)
+/backend
+  /agents
+    scout.py
+    seo_agent.py
+    ux_agent.py
+    copywriter.py
+    architect.py
+    arbitre.py
+  /core
+    state.py          # Définition du TypedDict et Reducers
+    config.py         # Variables d'environnement
+  /schemas
+    generative_ui.py  # Les modèles Pydantic maîtres (Contrat Frontend/Backend)
+  /services
+    crawler.py        # Implémentation Crawl4AI
+  main.py             # FastAPI et initialisation du Graphe LangGraph
