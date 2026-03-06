@@ -14,6 +14,11 @@ interface ThemeInjectorProps {
 export default function ThemeInjector({ artDirection }: ThemeInjectorProps) {
   const { color_palette_hex } = artDirection;
   
+  // Vérification de sécurité
+  if (!color_palette_hex || !Array.isArray(color_palette_hex)) {
+    return null;
+  }
+  
   // Ordre attendu : [primary, secondary, accent, neutral_dark, neutral_light]
   const [primary, secondary, accent, neutralDark, neutralLight] = color_palette_hex;
 

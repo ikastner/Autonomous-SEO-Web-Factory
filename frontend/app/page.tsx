@@ -103,11 +103,11 @@ export default function Home() {
       </div>
 
       {/* Affichage du site généré */}
-      {generatedSchema && (
+      {generatedSchema && generatedSchema.art_direction && (
         <>
           <ThemeInjector artDirection={generatedSchema.art_direction} />
           <main className="min-h-screen">
-            {generatedSchema.sections.map((section, index) => (
+            {generatedSchema.sections?.map((section, index) => (
               <ComponentRenderer 
                 key={index} 
                 section={section} 
