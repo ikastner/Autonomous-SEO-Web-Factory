@@ -368,7 +368,7 @@ async def copywriter_node(state: GraphState) -> dict[str, Any]:
     )
 
     llm = ChatOpenAI(
-        model=_settings.openai_model,
+        model=_settings.creative_model,
         temperature=_settings.llm_temperature,
         timeout=_settings.llm_timeout_seconds,
         max_retries=_settings.llm_max_retries,

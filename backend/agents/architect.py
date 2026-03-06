@@ -176,7 +176,7 @@ async def architect_node(state: GraphState) -> dict[str, Any]:
     logger.info("🏗️ Architect Node démarré — Compilation du JSON final...")
 
     llm = ChatOpenAI(
-        model=_settings.openai_model,
+        model=_settings.fast_model,
         temperature=0.1,  # Très bas : c'est du mapping strict, pas de créativité
         timeout=_settings.llm_timeout_seconds,
         max_retries=_settings.llm_max_retries,

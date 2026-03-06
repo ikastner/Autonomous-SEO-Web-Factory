@@ -167,7 +167,7 @@ async def scout_node(state: GraphState) -> dict[str, Any]:
     logger.info("🧠 Context compression démarrée (LLM synthesis)...")
 
     llm = ChatOpenAI(
-        model=_settings.openai_model,
+        model=_settings.fast_model,
         temperature=_settings.llm_temperature,
         timeout=_settings.llm_timeout_seconds,
         max_retries=_settings.llm_max_retries,

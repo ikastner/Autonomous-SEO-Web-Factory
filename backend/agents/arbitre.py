@@ -252,7 +252,7 @@ async def arbitre_node(state: GraphState) -> dict[str, Any]:
             }
 
     llm = ChatOpenAI(
-        model=_settings.openai_model,
+        model=_settings.reasoning_model,
         temperature=0.0,  # Strictement 0.0 pour maximiser le déterminisme
         timeout=_settings.llm_timeout_seconds,
         max_retries=_settings.llm_max_retries,

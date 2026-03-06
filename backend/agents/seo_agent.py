@@ -318,7 +318,7 @@ async def seo_node(state: GraphState) -> dict[str, Any]:
     logger.info(f"📊 Market Context → Niche: '{niche}', USP: '{usp[:50]}...'")
 
     llm = ChatOpenAI(
-        model=_settings.openai_model,
+        model=_settings.reasoning_model,
         temperature=_settings.llm_temperature,
         timeout=_settings.llm_timeout_seconds,
         max_retries=_settings.llm_max_retries,

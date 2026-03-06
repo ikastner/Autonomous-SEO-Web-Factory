@@ -41,10 +41,19 @@ class Settings(BaseSettings):
         description="Base URL de l'API (OpenRouter: https://openrouter.ai/api/v1)"
     )
 
-    # --- Modèle LLM ---
-    openai_model: str = Field(
-        "gpt-4o-mini",
-        description="Modèle LLM principal (gpt-4o-mini recommandé pour coût/qualité)"
+    # --- Modèles LLM (Model Routing) ---
+    # Chaque agent utilise le modèle le plus adapté à sa tâche
+    creative_model: str = Field(
+        "anthropic/claude-3.5-sonnet",
+        description="Modèle créatif (Art Director, Copywriter, UX) - Meilleur pour design et nuances"
+    )
+    reasoning_model: str = Field(
+        "openai/gpt-4o",
+        description="Modèle de raisonnement (SEO, Arbitre) - Meilleur pour règles strictes et logique"
+    )
+    fast_model: str = Field(
+        "openai/gpt-4o-mini",
+        description="Modèle rapide (Scout, Architect) - Plus économique pour parsing basique"
     )
     llm_temperature: float = Field(0.3, ge=0.0, le=2.0)
     llm_max_retries: int = Field(3, ge=1, le=10)
