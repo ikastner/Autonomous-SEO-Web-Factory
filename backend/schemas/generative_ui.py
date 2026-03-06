@@ -89,7 +89,103 @@ class PageMetadata(BaseModel):
 
 
 # ===========================================================================
-# 2. COMPOSANTS UI — Discriminated Union
+# 2. ART DIRECTION TOKENS — Design System Génératif
+# ===========================================================================
+
+class ArtDirectionTokens(BaseModel):
+    """Tokens de direction artistique générés par l'Art Director Agent.
+    
+    Définit l'identité visuelle complète du site généré : vibe, typographie,
+    animations et palette de couleurs. Permet de passer de "Boring UI" à
+    "Awwwards-level design" en injectant des intentions créatives dans le frontend.
+    """
+
+    design_vibe: Literal[
+        "swiss_editorial",
+        "neo_brutalism",
+        "minimalist_tech",
+        "organic_elegant"
+    ] = Field(
+        ...,
+        description=(
+            "Vibe visuelle globale du site. Détermine le layout, les espacements, "
+            "les bordures et l'approche typographique.\n"
+            "- swiss_editorial : Grilles strictes, typographie suisse, layouts asymétriques, "
+            "espaces blancs généreux (ex: Stripe, Linear).\n"
+            "- neo_brutalism : Bordures épaisses noires, ombres portées dures, couleurs saturées, "
+            "layouts cassés, anti-design assumé (ex: Gumroad, Figma Playground).\n"
+            "- minimalist_tech : Monochrome, grilles parfaites, micro-interactions subtiles, "
+            "glassmorphism, feeling Apple/Vercel (ex: Vercel, Raycast).\n"
+            "- organic_elegant : Courbes douces, dégradés subtils, typographie serif, "
+            "animations fluides, feeling premium (ex: Airbnb, Notion)."
+        ),
+    )
+
+    typography_style: Literal[
+        "sans_serif_heavy",
+        "serif_elegant",
+        "monospaced_tech"
+    ] = Field(
+        ...,
+        description=(
+            "Style typographique principal.\n"
+            "- sans_serif_heavy : Grotesk bold (Inter, Helvetica Now, Suisse), "
+            "titres massifs, contrastes de poids forts.\n"
+            "- serif_elegant : Serif éditorial (Tiempos, Canela, Freight), "
+            "titres raffinés, feeling magazine.\n"
+            "- monospaced_tech : Mono technique (JetBrains Mono, IBM Plex Mono), "
+            "feeling code/terminal, SaaS technique."
+        ),
+    )
+
+    animation_feeling: Literal[
+        "snappy_springs",
+        "smooth_ease",
+        "none"
+    ] = Field(
+        ...,
+        description=(
+            "Approche des micro-interactions et transitions.\n"
+            "- snappy_springs : Animations élastiques rapides (spring physics), "
+            "feeling réactif et joueur (ex: Framer Motion springs).\n"
+            "- smooth_ease : Easing doux et fluide (cubic-bezier), "
+            "transitions longues et élégantes.\n"
+            "- none : Pas d'animations, design statique ultra-rapide."
+        ),
+    )
+
+    color_palette_hex: list[str] = Field(
+        ...,
+        min_length=3,
+        max_length=5,
+        description=(
+            "Palette de couleurs générée mathématiquement (3-5 couleurs en HEX).\n"
+            "Ordre : [primary, secondary, accent, neutral_dark, neutral_light].\n"
+            "Doit respecter les ratios de contraste WCAG AA (4.5:1 minimum).\n"
+            "Exemples :\n"
+            "- swiss_editorial : ['#000000', '#FFFFFF', '#0066FF', '#F5F5F5']\n"
+            "- neo_brutalism : ['#FF6B35', '#004E89', '#FFEB3B', '#000000', '#FFFFFF']\n"
+            "- minimalist_tech : ['#0A0A0A', '#FAFAFA', '#3B82F6', '#E5E5E5']\n"
+            "- organic_elegant : ['#2D3748', '#F7FAFC', '#D69E2E', '#EDF2F7']"
+        ),
+    )
+
+    @field_validator("color_palette_hex")
+    @classmethod
+    def validate_hex_colors(cls, v: list[str]) -> list[str]:
+        """Valide que toutes les couleurs sont au format HEX valide."""
+        import re
+        hex_pattern = re.compile(r"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
+        for color in v:
+            if not hex_pattern.match(color):
+                raise ValueError(
+                    f"Couleur invalide '{color}'. Format attendu : #RRGGBB ou #RGB"
+                )
+        return v
+
+
+# ===========================================================================
+# 3. COMPOSANTS UI — Discriminated Union
 # ===========================================================================
 # Chaque modèle possède un champ `component_type: Literal["NomDuComposant"]`
 # qui sert de discriminant. L'agent IA DOIT renseigner ce champ tel quel.
@@ -161,6 +257,16 @@ class HeroSectionSchema(BaseModel):
             "Ex: 'Rejoignez 2 000+ marketeurs qui nous font confiance'."
         ),
     )
+    layout_style: Literal["centered", "split_screen", "asymmetric", "overlapping"] = Field(
+        "centered",
+        description=(
+            "Style de layout du Hero pour casser la grille classique.\n"
+            "- centered : Layout centré classique (texte + CTAs centrés).\n"
+            "- split_screen : Texte à gauche, visuel/gradient à droite (50/50).\n"
+            "- asymmetric : Layout asymétrique avec texte décalé (swiss_editorial vibe).\n"
+            "- overlapping : Éléments superposés avec z-index (neo_brutalism vibe)."
+        ),
+    )
 
 
 class FeatureItem(BaseModel):
@@ -222,6 +328,16 @@ class FeatureGridSchema(BaseModel):
     columns: Literal[2, 3] = Field(
         3,
         description="Nombre de colonnes de la grille. 2 ou 3 selon le nombre de features.",
+    )
+    layout_style: Literal["grid_classic", "bento_box", "masonry", "staggered"] = Field(
+        "grid_classic",
+        description=(
+            "Style de layout de la grille pour casser la monotonie.\n"
+            "- grid_classic : Grille uniforme classique (toutes les cartes même taille).\n"
+            "- bento_box : Layout type Bento (cartes de tailles variables, style Apple).\n"
+            "- masonry : Layout masonry (hauteurs variables, Pinterest-style).\n"
+            "- staggered : Cartes décalées verticalement (swiss_editorial vibe)."
+        ),
     )
 
 
@@ -430,6 +546,14 @@ class GenerativeUISchema(BaseModel):
     seo_metadata: PageMetadata = Field(
         ...,
         description="Métadonnées SEO complètes. Injectées dans generateMetadata() de Next.js.",
+    )
+    art_direction: ArtDirectionTokens = Field(
+        ...,
+        description=(
+            "Tokens de direction artistique générés par l'Art Director Agent. "
+            "Définit la vibe visuelle, la typographie, les animations et la palette de couleurs. "
+            "Le frontend Next.js utilise ces tokens pour appliquer le design system dynamiquement."
+        ),
     )
     sections: list[UIComponent] = Field(
         ...,

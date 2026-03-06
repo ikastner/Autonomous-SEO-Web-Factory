@@ -20,6 +20,17 @@ export interface PageMetadata {
 }
 
 // ===========================================================================
+// 2. ART DIRECTION TOKENS — Design System Génératif
+// ===========================================================================
+
+export interface ArtDirectionTokens {
+  design_vibe: "swiss_editorial" | "neo_brutalism" | "minimalist_tech" | "organic_elegant";
+  typography_style: "sans_serif_heavy" | "serif_elegant" | "monospaced_tech";
+  animation_feeling: "snappy_springs" | "smooth_ease" | "none";
+  color_palette_hex: string[];
+}
+
+// ===========================================================================
 // 2. COMPOSANTS UI — Discriminated Union
 // ===========================================================================
 
@@ -33,6 +44,7 @@ export interface HeroSectionSchema {
   cta_secondary_url?: string;
   background_variant: "gradient" | "image" | "solid" | "mesh";
   social_proof_label?: string;
+  layout_style: "centered" | "split_screen" | "asymmetric" | "overlapping";
 }
 
 export interface FeatureItem {
@@ -47,6 +59,7 @@ export interface FeatureGridSchema {
   section_subtitle?: string;
   features: FeatureItem[];
   columns: 2 | 3;
+  layout_style: "grid_classic" | "bento_box" | "masonry" | "staggered";
 }
 
 export interface ContentBlockSchema {
@@ -97,6 +110,7 @@ export interface GenerativeUISchema {
   page_slug: string;
   brand_name: string;
   seo_metadata: PageMetadata;
+  art_direction: ArtDirectionTokens;
   sections: UIComponent[];
   generated_at: string;
   pipeline_version: string;

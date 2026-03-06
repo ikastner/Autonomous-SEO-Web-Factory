@@ -163,12 +163,13 @@ async def architect_node(state: GraphState) -> dict[str, Any]:
     market_context = state.get("market_context", {})
     seo_silo = state.get("seo_silo", {})
     wireframe = state.get("wireframe", {})
+    art_direction = state.get("art_direction", {})
     copy_draft = state.get("copy_draft", {})
 
-    if not seo_silo or not wireframe or not copy_draft:
+    if not seo_silo or not wireframe or not art_direction or not copy_draft:
         logger.error("❌ Architect Node appelé sans données complètes dans le State")
         return {
-            "arbitre_errors": ["Architect Node : State incomplet (seo_silo, wireframe ou copy_draft manquant)"],
+            "arbitre_errors": ["Architect Node : State incomplet (seo_silo, wireframe, art_direction ou copy_draft manquant)"],
             "generative_ui_schema": {},
         }
 
@@ -193,6 +194,7 @@ async def architect_node(state: GraphState) -> dict[str, Any]:
                 f"MARKET CONTEXT :\n{market_context}\n\n"
                 f"SEO STRATEGY :\n{seo_silo}\n\n"
                 f"WIREFRAME (UX) :\n{wireframe}\n\n"
+                f"ART DIRECTION (Design Tokens) :\n{art_direction}\n\n"
                 f"COPY DRAFT :\n{copy_draft}\n\n"
                 f"Retourne le JSON GenerativeUISchema conforme au schéma : {parser.get_format_instructions()}"
             )
@@ -218,6 +220,9 @@ async def architect_node(state: GraphState) -> dict[str, Any]:
             schema_json["generated_at"] = datetime.now(tz=timezone.utc)
         if "pipeline_version" not in schema_json:
             schema_json["pipeline_version"] = "1.0.0"
+        # Injection directe des ArtDirectionTokens si le LLM les a oubliés
+        if "art_direction" not in schema_json and art_direction:
+            schema_json["art_direction"] = art_direction
 
         validated_schema = GenerativeUISchema(**schema_json)
     except ValidationError as exc:

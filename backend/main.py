@@ -23,6 +23,7 @@ from backend.core.state import GraphState
 from backend.agents.scout import scout_node
 from backend.agents.seo_agent import seo_node
 from backend.agents.ux_agent import ux_node
+from backend.agents.art_director import art_director_node
 from backend.agents.copywriter import copywriter_node
 from backend.agents.arbitre import arbitre_node, route_after_arbitre
 from backend.agents.architect import architect_node
@@ -47,10 +48,11 @@ def build_factory_graph() -> Any:
     Topologie du graphe :
         1. START → scout_node : Extraction et compression du contenu web
         2. scout_node → seo_node : Définition de la stratégie sémantique SEO
-        3. seo_node → [ux_node, copywriter_node] : Exécution PARALLÈLE
+        3. seo_node → [ux_node, art_director_node, copywriter_node] : Exécution PARALLÈLE
             - ux_node : Conception du wireframe (structure UI)
+            - art_director_node : Génération des design tokens (vibe, typo, couleurs)
             - copywriter_node : Rédaction du contenu persuasif
-        4. [ux_node, copywriter_node] → arbitre_node : Point de jonction (attend les 2)
+        4. [ux_node, art_director_node, copywriter_node] → arbitre_node : Point de jonction (attend les 3)
         5. arbitre_node → {routing conditionnel} :
             - Si approuvé → architect_node
             - Si rejeté → seo_node | ux_node | copywriter_node (retry)
@@ -70,6 +72,7 @@ def build_factory_graph() -> Any:
     builder.add_node("scout_node", scout_node)
     builder.add_node("seo_node", seo_node)
     builder.add_node("ux_node", ux_node)
+    builder.add_node("art_director_node", art_director_node)
     builder.add_node("copywriter_node", copywriter_node)
     builder.add_node("arbitre_node", arbitre_node)
     builder.add_node("architect_node", architect_node)
@@ -85,18 +88,20 @@ def build_factory_graph() -> Any:
     builder.add_edge("scout_node", "seo_node")
 
     # -----------------------------------------------------------------------
-    # PARALLÉLISATION : SEO → (UX + Copywriter)
+    # PARALLÉLISATION : SEO → (UX + Art Director + Copywriter)
     # -----------------------------------------------------------------------
-    # LangGraph lancera les deux nœuds en parallèle dès que seo_node termine
+    # LangGraph lancera les trois nœuds en parallèle dès que seo_node termine
     builder.add_edge("seo_node", "ux_node")
+    builder.add_edge("seo_node", "art_director_node")
     builder.add_edge("seo_node", "copywriter_node")
 
     # -----------------------------------------------------------------------
-    # Point de jonction : (UX + Copywriter) → Arbitre
+    # Point de jonction : (UX + Art Director + Copywriter) → Arbitre
     # -----------------------------------------------------------------------
     # LangGraph attend automatiquement que TOUS les nœuds pointant vers
     # arbitre_node soient terminés avant de le lancer
     builder.add_edge("ux_node", "arbitre_node")
+    builder.add_edge("art_director_node", "arbitre_node")
     builder.add_edge("copywriter_node", "arbitre_node")
 
     # -----------------------------------------------------------------------

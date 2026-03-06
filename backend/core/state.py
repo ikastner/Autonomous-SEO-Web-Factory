@@ -63,6 +63,10 @@ SeoSilo = dict[str, Any]
 # { "sections": list[{ "id": str, "type": str, "props": dict }] }
 Wireframe = dict[str, Any]
 
+# ArtDirection   → produit par Art Director Node
+# { "design_vibe": str, "typography_style": str, "animation_feeling": str, "color_palette_hex": list[str] }
+ArtDirection = dict[str, Any]
+
 # CopyDraft      → produit par Copywriter Node
 # { "hero": str, "sections": dict[str, str] }
 CopyDraft = dict[str, Any]
@@ -103,6 +107,10 @@ class GraphState(TypedDict):
     # --- UX Node ---
     wireframe: Annotated[Wireframe, _merge_dict]
     """Structure de la page : sections ordonnées avec types de composants."""
+
+    # --- Art Director Node ---
+    art_direction: Annotated[ArtDirection, _merge_dict]
+    """Tokens de direction artistique : vibe, typographie, animations, palette de couleurs."""
 
     # --- Copywriter Node ---
     copy_draft: Annotated[CopyDraft, _merge_dict]
